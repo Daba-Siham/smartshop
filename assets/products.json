@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "name": "Airpods",
+    "price": 1500,
+    "image": "assets/produit1.png",
+    "description": "Écouteurs sans fil",
+    "rating": 4.5
+  },
+  {
+    "id": 2,
+    "name": "Iphone",
+    "price": 8000,
+    "image": "assets/produit2.png",
+    "description": "Smartphone Apple",
+    "rating": 4.8
+  },
+  {
+    "id": 3,
+    "name": "Airpods Max",
+    "price": 5900,
+    "image": "assets/produit3.png",
+    "description": "Écouteurs Apple",
+    "rating": 4.7
+  },
+  {
+    "id": 4,
+    "name": "MacBook Pro",
+    "price": 20000,
+    "image": "assets/produit4.png",
+    "description": "Ordinateur portable Apple",
+    "rating": 4.9
+  }
+]
