@@ -8,11 +8,5 @@ class JsonService {
     final List<dynamic> jsonList = jsonDecode(data);
     return jsonList.map((e) => Product.fromJson(e)).toList();
   }
-  // static Future<List<Product>> loadProducts() async {
-  //   final dir = await getApplicationDocumentsDirectory();
-  //   final file = File ('assets/products.json');
-  //   final data = await file.readAsString();
-  //   final List<dynamic> jsonList = jsonDecode(data);
-  //   return jsonList.map((e) => Product.fromJson(e)).toList();
-  // }
+
 }

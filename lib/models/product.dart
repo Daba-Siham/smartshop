@@ -4,6 +4,7 @@ class Product {
   final double price;
   final String image;
   final String description;
+  final String category;
   final double rating;
 
   Product({
@@ -12,6 +13,7 @@ class Product {
     required this.price,
     required this.image,
     required this.description,
+    required this.category,
     required this.rating,
   });
 
@@ -22,6 +24,7 @@ class Product {
       price: (json["price"] as num).toDouble(),
       image: json["image"].toString(),
       description: json["description"].toString(),
+      category: json["category"].toString(),
       rating: (json["rating"] as num).toDouble(),
     );
   }

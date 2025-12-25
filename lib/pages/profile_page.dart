@@ -31,7 +31,7 @@ class ProfilePage extends StatelessWidget {
             const SizedBox(height: 16),
             Text(name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             const SizedBox(height: 8),
-            Text("Profession: $job", style: const TextStyle(fontSize: 16, color: Colors.grey), textAlign: TextAlign.center),
+            Text("$job", style: const TextStyle(fontSize: 16, color: Colors.grey), textAlign: TextAlign.center),
             const SizedBox(height: 8),
             Row(
               children: [

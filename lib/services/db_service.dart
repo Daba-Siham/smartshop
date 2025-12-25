@@ -10,7 +10,7 @@ Future <Database> initDB() async{
       return db.execute(
         '''
         CREATE TABLE favorites(
-          id INTEGER PRIMARY KEY,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT,
           price REAL,
           imagePath TEXT

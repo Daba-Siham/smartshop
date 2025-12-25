@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import '../widgets/product_card.dart';
-// import 'product_page.dart';
 import 'cart_page.dart';
+import '../services/db_service.dart'; // <-- pour SQLite favoris
 
-List <Map<String, dynamic>> cart = [];
-List <Map<String, dynamic>> favorites = [];
+// Panier en mémoire
+List<Map<String, dynamic>> cart = [];
 
-bool isFav(String name) => favorites.any((item) => item['name'] == name);
+// (facultatif) ancienne liste favoris en mémoire, si encore utilisée ailleurs
+List<Map<String, dynamic>> favorites = [];
 
-void toggleFav(Map<String , dynamic> product) {
+// Si tu ne l'utilises plus, tu peux supprimer ces deux fonctions :
+bool isFavLocal(String name) => favorites.any((item) => item['name'] == name);
+
+void toggleFavLocal(Map<String, dynamic> product) {
   final index = favorites.indexWhere((item) => item['name'] == product['name']);
   if (index != -1) {
     favorites.removeAt(index);
@@ -16,10 +20,12 @@ void toggleFav(Map<String , dynamic> product) {
     favorites.add(product);
   }
 }
-void addToCart(Map<String , dynamic> product) {
+
+// ---- Panier : on garde la logique, mais on ajoute un paramètre quantité ----
+void addToCart(Map<String, dynamic> product, {int quantity = 1}) {
   final index = cart.indexWhere((item) => item['name'] == product['name']);
   if (index != -1) {
-    cart[index]['quantity'] += 1;
+    cart[index]['quantity'] += quantity;
   } else {
     cart.add({
       "name": product['name'],
@@ -27,7 +33,7 @@ void addToCart(Map<String , dynamic> product) {
       "image": product['image'],
       "description": product['description'],
       "rating": product['rating'],
-      "quantity": 1,
+      "quantity": quantity,
     });
   }
 }
@@ -39,14 +45,13 @@ class ProductDetailsPage extends StatefulWidget {
   final String description;
   final double rating;
 
-  ProductDetailsPage({
+  const ProductDetailsPage({
     super.key,
     required this.name,
     required this.price,
     required this.image,
     required this.description,
     required this.rating,
-
   });
 
   @override
@@ -55,71 +60,193 @@ class ProductDetailsPage extends StatefulWidget {
 
 class _ProductDetailsPageState extends State<ProductDetailsPage> {
   bool added = false;
+  int quantity = 1;
+
+  bool isFavoriteProduct = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavoriteStatus();
+  }
+
+  Future<void> _loadFavoriteStatus() async {
+    final fav = await isFavorite(widget.name); // vient de db_service.dart
+    if (mounted) {
+      setState(() => isFavoriteProduct = fav);
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final name = widget.name;
+    final price = widget.price;
+    final imagePath = widget.image;
+
+    if (isFavoriteProduct) {
+      await deleteFavoriteByName(name);
+    } else {
+      await addFavorise(name: name, price: price, imagePath: imagePath);
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      isFavoriteProduct = !isFavoriteProduct;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isFavoriteProduct
+              ? "$name ajouté aux favoris"
+              : "$name retiré des favoris",
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("SmartShop")),
-      body: Padding(
+      appBar: AppBar(
+        title: const Text("SmartShop"),
+        actions: [
+          IconButton(
+            icon: Icon(
+              isFavoriteProduct ? Icons.favorite : Icons.favorite_border,
+              color: isFavoriteProduct ? Colors.red : null,
+            ),
+            onPressed: _toggleFavorite,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(child: Image.asset(widget.image, height: 200)),
             const SizedBox(height: 16),
-            Text(widget.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+
+            Text(
+              widget.name,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+
             const SizedBox(height: 16),
+
             Text(widget.description, style: const TextStyle(fontSize: 16)),
+
             const SizedBox(height: 16),
+
             Row(
               children: [
                 for (int i = 0; i < widget.rating.floor(); i++)
                   const Icon(Icons.star, color: Colors.amber),
                 const SizedBox(width: 4),
-                Text(widget.rating.toString(), style: const TextStyle(fontSize: 16)),
+                Text(widget.rating.toString(),
+                    style: const TextStyle(fontSize: 16)),
               ],
             ),
+
             const SizedBox(height: 16),
-            Text("Prix : ${widget.price} DH",
-                style: const TextStyle(
-                    fontSize: 20, color: Color.fromARGB(255, 111, 246, 120))),
+
+            Text(
+              "Prix : ${widget.price} DH",
+              style: const TextStyle(
+                fontSize: 20,
+                color: Color.fromARGB(255, 111, 246, 120),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // --------- Choix de quantité ----------
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Quantité",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        if (quantity > 1) {
+                          setState(() => quantity--);
+                        }
+                      },
+                      icon: const Icon(Icons.remove),
+                    ),
+                    Text(
+                      quantity.toString(),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() => quantity++);
+                      },
+                      icon: const Icon(Icons.add),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              "Total : ${widget.price * quantity} DH",
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
+
+      // ------- Bouton panier : on garde le principe de ton projet -------
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
           onPressed: () {
             setState(() {
               added = !added;
+
               if (added) {
-                final index = cart.indexWhere ((item)=> item['name'] == widget.name);
-                if (index != -1){
-                  cart[index]['quantity']+=1;
-                }
-                else{
-                  cart.add({
+                final productMap = {
                   "name": widget.name,
                   "price": widget.price,
                   "image": widget.image,
                   "description": widget.description,
                   "rating": widget.rating,
-                  "quantity": 1,
-                });
-                }
-                
+                };
+
+                addToCart(productMap, quantity: quantity);
               } else {
                 cart.removeWhere((item) => item['name'] == widget.name);
               }
             });
+
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(added ? "Produit ajouté au panier !" : "Produit retiré du panier !"))
-,
+              SnackBar(
+                content: Text(
+                  added
+                      ? "Produit ajouté au panier (x$quantity) !"
+                      : "Produit retiré du panier !",
+                ),
+              ),
             );
+
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => CartPage(),
+                builder: (_) => const CartPage(),
               ),
             );
           },
@@ -129,7 +256,6 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     );
   }
 }
-
 
 class ProductsPage extends StatelessWidget {
   final List<Map<String, dynamic>> products;

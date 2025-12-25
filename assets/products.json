@@ -5,6 +5,7 @@
     "price": 1500,
     "image": "assets/produit1.png",
     "description": "Écouteurs sans fil",
+    "category": "Accessoires",
     "rating": 4.5
   },
   {
@@ -13,6 +14,7 @@
     "price": 8000,
     "image": "assets/produit2.png",
     "description": "Smartphone Apple",
+    "category": "Phones",
     "rating": 4.8
   },
   {
@@ -21,6 +23,7 @@
     "price": 5900,
     "image": "assets/produit3.png",
     "description": "Écouteurs Apple",
+    "category": "Accessoires",
     "rating": 4.7
   },
   {
@@ -29,6 +32,7 @@
     "price": 20000,
     "image": "assets/produit4.png",
     "description": "Ordinateur portable Apple",
+    "category": "Laptops",
     "rating": 4.9
   }
 ]

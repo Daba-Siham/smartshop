@@ -11,48 +11,23 @@ import '../history/log.dart';
 import 'favorites_page.dart';
 import '../services/json_service.dart';
 import '../models/product.dart';
+import '../services/db_service.dart';
+import 'api_product_page.dart';
+import 'add_product_api_page.dart.dart';
+import 'edit_product_api_page.dart';
+import 'settings_page.dart';
+import 'prefs_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  // static const List<Map<String, dynamic>> products = [
-  //   {
-  //     "name": "Airpods",
-  //     "price": "1500",
-  //     "image": "assets/produit1.png",
-  //     "description": "Écouteurs sans fil de haute qualité.",
-  //     "rating": 4.5
-  //   },
-  //   {
-  //     "name": "Phone",
-  //     "price": "7500",
-  //     "image": "assets/produit2.png",
-  //     "description": "Smartphone dernière génération.",
-  //     "rating": 4.8
-  //   },
-  //   {
-  //     "id": 3,
-  //     "name": "Airpods Max",
-  //     "price": "5900",
-  //     "image": "assets/produit3.png",
-  //     "description": "Écouteurs Apple"
-  //   },
-  //   {
-  //     "name": "MacBook Pro",
-  //     "price": "20000",
-  //     "image": "assets/produit4.png",
-  //     "description": "Ordinateur portable puissant pour les professionnels.",
-  //     "rating": 4.7
-  //   },
-  // ];
-
   static const Map<String, String> profile = {
-    "name": "ahmed said",
-    "email": "ahmedsaid@gmail.com",
-    "avatar": "assets/profile.png",
-    "telephone": "0654321987",
+    "name": "Siham Daba",
+    "email": "sihamdaba@gmail.com",
+    "avatar": "assets/cute.jpg",
+    "telephone": "0604115980",
     "address": "123 Rue Exemple, Ville, Pays",
-    "job": "Développeur Flutter"
+    "job": "AI student"
   };
 
   @override
@@ -61,6 +36,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final List<String> categories = [
+    "Tous",
     "Phones",
     "Laptops",
     "Watch",
@@ -68,7 +44,7 @@ class _HomePageState extends State<HomePage> {
     "Accessoires"
   ];
 
-  String selectedCategory = "Phones";
+  String selectedCategory = "Tous";
 
   void _showProductBottomSheet(Map<String, dynamic> product) {
     Log.actions.add("Produit ${product['name']} consulté");
@@ -107,10 +83,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 16),
               Text(
                 product["name"],
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
@@ -122,20 +95,17 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: 16),
+
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        addToCart(product); 
-                        Log.actions.add(
-                            "Produit ${product['name']} ajouté au panier");
+                        addToCart(product);
+                        Log.actions.add("Produit ${product['name']} ajouté au panier");
                         Navigator.pop(context);
                         ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                "${product['name']} a été ajouté au panier"),
-                          ),
+                          SnackBar(content: Text("${product['name']} a été ajouté au panier")),
                         );
                         setState(() {});
                       },
@@ -144,12 +114,13 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(width: 12),
+
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
                         Navigator.push(
-                          context,
+                          this.context,
                           MaterialPageRoute(
                             builder: (_) => ProductDetailsPage(
                               name: product["name"],
@@ -163,32 +134,63 @@ class _HomePageState extends State<HomePage> {
                       },
                       icon: const Icon(Icons.info_outline),
                       label: const Text("Voir détails"),
-
                     ),
-                  
                   ),
                   const SizedBox(width: 12),
+
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        toggleFav(product);
-                        Log.actions.add(
-                            "Produit ${product['name']} ajouté aux favoris");
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                "${product['name']} a été ajouté aux favoris"),
+                    child: FutureBuilder<bool>(
+                      future: isFavorite(product["name"].toString()),
+                      builder: (context, snapshot) {
+                        final alreadyFavorite = snapshot.data ?? false;
+
+                        return OutlinedButton.icon(
+                          onPressed: () async {
+                            final name = product["name"].toString();
+
+                            final rawPrice = product["price"];
+                            final price = (rawPrice is num)
+                                ? rawPrice.toDouble()
+                                : double.parse(rawPrice.toString());
+
+                            final imagePath = product["image"].toString();
+
+                            if (alreadyFavorite) {
+                              await deleteFavoriteByName(name);
+                              Log.actions.add("Produit $name retiré des favoris");
+                            } else {
+                              await addFavorise(
+                                name: name,
+                                price: price,
+                                imagePath: imagePath,
+                              );
+                              Log.actions.add("Produit $name ajouté aux favoris");
+                            }
+
+                            if (mounted) {
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    alreadyFavorite
+                                        ? "$name retiré des favoris"
+                                        : "$name ajouté aux favoris",
+                                  ),
+                                ),
+                              );
+                              setState(() {});
+                            }
+                          },
+                          icon: Icon(
+                            alreadyFavorite ? Icons.favorite : Icons.favorite_border,
+                            color: alreadyFavorite ? Colors.red : Colors.grey,
+                          ),
+                          label: Text(
+                            alreadyFavorite ? "Retirer" : "Favori",
                           ),
                         );
-                        setState(() {});
                       },
-                      icon: const Icon(Icons.favorite_border),
-                      label: const Text("Ajouter aux favoris"),
-
                     ),
-                  
-                  ),  
+                  ),
                 ],
               ),
             ],
@@ -200,26 +202,17 @@ class _HomePageState extends State<HomePage> {
 
   void _openSearch() {
     Log.actions.add("Ouverture page Recherche");
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SearchPage()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchPage()));
   }
 
   void _openSettings() {
     Log.actions.add("Ouverture page Paramètres");
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SettingsPage()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const PrefsPage()));
   }
 
   void _openHistory() {
     Log.actions.add("Ouverture page Historique");
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const HistoryPage()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryPage()));
   }
 
   void _openProfile() {
@@ -240,7 +233,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { 
     return Scaffold(
       drawer: Drawer(
         child: ListView(
@@ -248,38 +241,18 @@ class _HomePageState extends State<HomePage> {
             const DrawerHeader(
               decoration: BoxDecoration(color: Colors.blue),
               child: Center(
-                child: Text(
-                  "SmartShop Menu",
-                  style: TextStyle(color: Colors.white, fontSize: 20),
-                ),
+                child: Text("SmartShop Menu", style: TextStyle(color: Colors.white, fontSize: 20)),
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text("Paramètres"),
-              onTap: _openSettings,
-            ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text("Historique"),
-              onTap: _openHistory,
-            ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text("Profil"),
-              onTap: _openProfile,
-            ),
+            ListTile(leading: const Icon(Icons.settings), title: const Text("Paramètres"), onTap: _openSettings),
+            ListTile(leading: const Icon(Icons.history), title: const Text("Historique"), onTap: _openHistory),
+            ListTile(leading: const Icon(Icons.person), title: const Text("Profil"), onTap: _openProfile),
             ListTile(
               leading: const Icon(Icons.favorite),
               title: const Text("Favoris"),
-              onTap: (){
+              onTap: () {
                 Log.actions.add("Ouverture page Favoris");
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const FavoritesPage(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesPage()));
               },
             ),
             ListTile(
@@ -287,67 +260,48 @@ class _HomePageState extends State<HomePage> {
               title: const Text("Panier"),
               onTap: () {
                 Log.actions.add("Ouverture page Panier");
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CartPage(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (_) => CartPage()));
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.search),
-              title: const Text("Recherche"),
-              onTap: _openSearch,
-            ),
+            ListTile(leading: const Icon(Icons.search), title: const Text("Recherche"), onTap: _openSearch),
           ],
         ),
       ),
+
       appBar: AppBar(
         title: const Text("SmartShop"),
         actions: [
+          IconButton(icon: const Icon(Icons.search), onPressed: _openSearch),
           IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _openSearch,
-          ),
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () {
-              Log.actions.add("Ouverture page Panier");
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CartPage(),
-                ),
-              );
-    },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _openSettings,
-          ),
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: _openHistory,
-          ),
-          IconButton(
-            icon : const Icon(Icons.favorite),
-            onPressed: (){
-              Log.actions.add("Ouverture page Favoris");
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const FavoritesPage(),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: _openProfile,
-          ),
+          icon: const Icon(Icons.cloud_download),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ApiProductPage()),
+            );
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.add),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AddProductApiPage()),
+            );
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.edit),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EditProductApiPage()),
+            );
+          },
+      )
         ],
       ),
+
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -356,18 +310,12 @@ class _HomePageState extends State<HomePage> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: categories.map((cat) {
-                bool isSelected = (cat == selectedCategory);
+                final isSelected = (cat == selectedCategory);
                 return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedCategory = cat;
-                    });
-                  },
+                  onTap: () => setState(() => selectedCategory = cat),
                   child: Container(
-                    margin: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 12),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 10),
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
                       color: isSelected ? Colors.blue : Colors.grey[300],
                       borderRadius: BorderRadius.circular(20),
@@ -388,39 +336,32 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: Text(
               "Catégorie sélectionnée : $selectedCategory",
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 10),
           const SectionTitle(title: "Produits"),
-          // Expanded(
-          //   child: Padding(
-          //     padding: const EdgeInsets.all(10.0),
-          //     child: ListView(
-          //       children: HomePage.products.map((product) {
-          //         return GestureDetector(
-          //           onTap: () => _showProductBottomSheet(product),
-          //           child: ProductTile(
-          //             imgPath: product['image'],
-          //             name: product['name'],
-          //             price: product['price'],
-          //           ),
-          //         );
-          //       }).toList(),
-          //     ),
-          //   ),
-          // ),
+
           Expanded(
             child: FutureBuilder<List<Product>>(
               future: JsonService.loadProducts(),
               builder: (_, snapshot) {
-                if (!snapshot.hasData){
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final products = snapshot.data!;
+
+                final allProducts = snapshot.data!;
+                final filteredProducts = selectedCategory == "Tous"
+                    ? allProducts
+                    : allProducts.where((p) =>
+                        p.category.trim().toLowerCase() == selectedCategory.trim().toLowerCase()).toList();
+
+                if (filteredProducts.isEmpty) {
+                  return const Center(child: Text("Aucun produit dans cette catégorie", style: TextStyle(fontSize: 16)));
+                }
+
                 return ListView(
-                  children: products.map((product) {
+                  children: filteredProducts.map((product) {
                     return GestureDetector(
                       onTap: () => _showProductBottomSheet({
                         "name": product.name,
@@ -439,7 +380,7 @@ class _HomePageState extends State<HomePage> {
                 );
               },
             ),
-          )
+          ),
         ],
       ),
     );
