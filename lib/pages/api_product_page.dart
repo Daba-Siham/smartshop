@@ -82,20 +82,22 @@ class _ApiProductPageState extends State<ApiProductPage> {
               final p = products[index];
               return ListTile(
                 leading: (p.imgPath != null && p.imgPath!.isNotEmpty)
-                  ? Image.network(
-                      p.imgPath!,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return CircleAvatar(
-                          child: Text(p.id.toString()),
-                        );
-                      },
-                    )
-                  : CircleAvatar(
-                      child: Text(p.id.toString()),
-                    ),
+                    ? Image.network(
+                        p.imgPath!.startsWith('http')
+                            ? p.imgPath! 
+                            : '${ApiService.serverBase}/uploads/${p.imgPath!}', // nouveau format : filename
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return CircleAvatar(
+                            child: Text(p.id.toString()),
+                          );
+                        },
+                      )
+                    : CircleAvatar(
+                        child: Text(p.id.toString()),
+                      ),
                 title: Text(p.name),
                 subtitle: Text(
                   '${p.price} DH\n${p.description}',
@@ -108,6 +110,7 @@ class _ApiProductPageState extends State<ApiProductPage> {
                   onPressed: () => _deleteProduct(p.id),
                 ),
               );
+
             },
           );
         },

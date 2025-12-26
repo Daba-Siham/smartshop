@@ -88,7 +88,7 @@ class _EditProductApiPageState extends State<EditProductApiPage> {
 
       if (pickedImage != null) {
         final file = File(pickedImage!.path);
-        imgPathToSend = await ApiService.uploadImage(file);
+        imgPathToSend = await ApiService.uploadImage(file); 
       }
 
       await ApiService.updateProduct(
@@ -124,8 +124,18 @@ class _EditProductApiPageState extends State<EditProductApiPage> {
 
     final existing = selectedProduct?['imgPath']?.toString();
     if (existing != null && existing.isNotEmpty) {
+      if (existing.startsWith('http')) {
+        return Image.network(
+          existing,
+          height: 120,
+          fit: BoxFit.cover,
+        );
+      }
+
+      final fullUrl = '${ApiService.serverBase}/uploads/$existing';
+
       return Image.network(
-        existing,
+        fullUrl,
         height: 120,
         fit: BoxFit.cover,
       );
@@ -164,7 +174,7 @@ class _EditProductApiPageState extends State<EditProductApiPage> {
                       onChanged: (value) {
                         setState(() {
                           selectedProduct = value;
-                          pickedImage = null;
+                          pickedImage = null; 
                           nameController.text =
                               selectedProduct?['name']?.toString() ?? '';
                           descController.text =

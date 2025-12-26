@@ -38,7 +38,9 @@ class ApiProduct {
 }
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.1.12:5000/api';
+  static const String serverBase = 'http://10.104.85.177:5000';
+
+  static const String baseUrl = '$serverBase/api';
 
   static Future<List<ApiProduct>> fetchProducts() async {
     final url = Uri.parse('$baseUrl/products');
@@ -76,7 +78,7 @@ class ApiService {
       'description': description,
     };
     if (imgPath != null) {
-      body['imgPath'] = imgPath;
+      body['imgPath'] = imgPath; 
     }
 
     try {
@@ -124,7 +126,7 @@ class ApiService {
       "price": price,
     };
     if (imgPath != null) {
-      body["imgPath"] = imgPath;
+      body["imgPath"] = imgPath; 
     }
 
     final response = await http.put(
@@ -170,7 +172,7 @@ class ApiService {
     }
   }
 
-   static Future<String> uploadImage(File file) async {
+  static Future<String> uploadImage(File file) async {
     final url = Uri.parse('$baseUrl/upload_image');
 
     final request = http.MultipartRequest('POST', url);
@@ -183,12 +185,11 @@ class ApiService {
 
     if (response.statusCode == 201) {
       final data = jsonDecode(response.body);
-      return data['url'] as String;
+      final filename = data['filename'] as String;
+      return filename; 
     } else {
       throw Exception(
           "Erreur upload image (${response.statusCode}) : ${response.body}");
     }
   }
-
-
 }

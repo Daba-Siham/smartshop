@@ -3,19 +3,17 @@ import 'dart:io';
 import '../services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
 
-
-
 class AddProductApiPage extends StatefulWidget {
   const AddProductApiPage({super.key});
 
   @override
   State<AddProductApiPage> createState() => _AddProductApiPageState();
 }
+
 class _AddProductApiPageState extends State<AddProductApiPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController descController = TextEditingController();
-  final TextEditingController imgPathController = TextEditingController();
 
   final ImagePicker _picker = ImagePicker();
   XFile? pickedImage;
@@ -56,18 +54,18 @@ class _AddProductApiPageState extends State<AddProductApiPage> {
     });
 
     try {
-      String? imgUrl;
+      String? imgFilename; 
 
       if (pickedImage != null) {
-        final file = File(pickedImage!.path);          
-        imgUrl = await ApiService.uploadImage(file); 
+        final file = File(pickedImage!.path);
+        imgFilename = await ApiService.uploadImage(file);
       }
 
       await ApiService.addProduct(
         name: name,
         price: price,
         description: desc,
-        imgPath: imgUrl, 
+        imgPath: imgFilename, // on envoie le filename à l’API
       );
 
       if (!mounted) return;
@@ -88,7 +86,6 @@ class _AddProductApiPageState extends State<AddProductApiPage> {
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
